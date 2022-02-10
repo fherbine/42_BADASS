@@ -89,13 +89,6 @@ $ router ospf
 ### router 3
 
 ```sh
-%% $ brctl addbr br0 # creation d'un bridge
-%% $ ip link set up dev br0 # activation du bridge
-%% $ ip link add vxlan10 type vxlan id 10 dstport 4789 # creation d'une interface vxlan
-%% $ ip link set up dev vxlan10 # activation de l'interface vxlan
-%% $ brctl addif br0 vxlan10 # ajout interface vxlan10 au bridge
-%% $ brctl addif br0 eth0 # ajout interface eth0 au bridge
-%% $ vtysh # ouvrir le shell frrouting
 
 $ config t # se mettre en mode configuration
 
@@ -120,7 +113,6 @@ $ neighbor 1.1.1.1 update-source lo
 ## Setup evpn
 $ address-family l2vpn evpn
 $ neighbor 1.1.1.1 activate
-%% $ advertise-all-vni
 $ exit-address-family
 
 $ router ospf
