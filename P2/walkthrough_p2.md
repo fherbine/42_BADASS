@@ -30,7 +30,9 @@ On selectionne `routeur_aabelque` et on clique sur `Edit`, on peut changer ici l
 
 On peut ensuite construire notre topologie VxLAN, conformément avec le sujet, en faisant du Drag&Drop depuis l'interface de GNS3 et en ajoutant nos liaison.
 
-### configuration statique des interfaces réseau
+### configuration statique des interfaces réseau (via `/etc/network/interfaces`)
+
+Ici on va expliquer comment configurer nos interfaces avec des IPs statiques, via le fichier de configuration prévu à cet effet, vous pouvez aussi configurer en [ligne de commande](#configuration-statique-des-interfaces-reseau-cli).
 
 Après avoir réaliser notre topologie réseau et nos liaisons entre nos équipements sur GNS3, on va réaliser la configuration de nos équipements.
 
@@ -42,13 +44,43 @@ D'après le sujet voici les configurations choisit:
 
 |      hostname      | interfaces |     IP      | gateway  |
 |--------------------|------------|-------------|----------|
-|   host_fherbine-1  |    eth0    | 30.1.1.1/24 | 30.1.1.3 |
-|   host_fherbine-2  |    eth0    | 30.1.1.2/24 | 30.1.1.3 |
+|   host_fherbine-1  |    eth1    | 30.1.1.1/24 | 30.1.1.3 |
+|   host_fherbine-2  |    eth1    | 30.1.1.2/24 | 30.1.1.3 |
 | routeur_aabelque-1 |    eth0    | 10.1.1.1/24 |          |
 | routeur_aabelque-1 |    eth1    | 30.1.1.3/24 |          |
 | routeur_aabelque-2 |    eth0    | 10.1.1.2/24 |          |
 | routeur_aabelque-2 |    eth1    | 30.1.1.3/24 |          |
 
+### configuration statique des interfaces reseau (CLI)
+
+#### Configuration des hosts
+
+On accédera à nos machines en effectuant un double-clic, après les avoir démarré.
+
+Conformement au sujet, le nom de notre interface doit être `eth1` et non pas `eth0`, on va donc effectuer des verifications et d'éventuelles modifications:
+
+```sh
+$ ip a # on vérifie le nom de notre interface, si il n'est pas bon, on lance les commandes suivantes.
+$ ip link set eth0 down # on arrête l'interface.
+$ ip link set eth0 name eth1 # on modifie son nom.
+$ ip link set eth1 up # on démarre notre interface renommée.
+```
+
+On peut ensuite attribuer nos addresses IPs:
+
+```sh
+$ ip addr add <ip/mask> dev eth1 # 30.1.1.1/24 (host1) & 30.1.1.2/24 (host2)
+
+```
+
+#### Configuration des routeurs
+
+Pour les routeurs, et dans cette première partie, il faudra suivre la procédure suivante:
+
+```sh
+$ ip addr add <ip/mask> dev eth0 # 10.1.1.1/24 (host1) & 10.1.1.2/24 (host2)
+$ ip addr add <ip/mask> dev eth1 # 30.1.1.3/24
+```
 
 ### Configuration des bridges et VxLAN
 
@@ -76,3 +108,33 @@ $ ip link set eth1 master br0 # on ajoute l'interface eth1 au bridge
 ```
 
 > les fichiers de configuration statique pour les interfaces eth0/1 sont dispos dans ce repo.
+
+## Dynamique / Multicast
+
+Ici toutes les configurations / découvertes des IPs sont dynamique grâce à notre VxLAN multicast.
+
+Nous devrons donc ainsi seulement configurer les IPs de nos hôtes
+
+### Configuration des IPs statiques des hosts
+
+Pour la configuration de ces hôtes, on peut se baser sur notre [configuration précédente](#configuration-des-hosts)
+
+### Configuration des routeurs
+
+#### Configuration du VxLAN
+
+```sh
+$ ip link add vxlan10 type vxlan id 10 dstport 4789 group <Adresse IP du groupe> dev eth0 ttl auto # 239.1.1.1 dans le sujet
+$ ip link set up dev vxlan10
+```
+
+#### Configuration du bridge
+
+```sh
+$ brctl addbr br0
+$ brctl addif br0 vxlan10
+$ brctl addif br0 eth0
+$ brctl addif br0 eth1
+$ brctl stp br0 off
+$ ip link set up dev br0
+```
